@@ -18,7 +18,7 @@ namespace EncurtadorUrl.Controller
         [HttpPost("encurtar")]
         public async Task<IActionResult> Encurtar([FromBody] UrlOriginalDto request)
         {
-            var novaUrl = await _service.CriarEncurtamento(request.UrlOriginal);
+            var novaUrl = await _service.CriarEncurtamento(request.UrlOriginal, request.DataExpiracao);
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             return Ok(new { urlCurta = $"{baseUrl}/{novaUrl.Codigo}" });
         }
@@ -28,7 +28,7 @@ namespace EncurtadorUrl.Controller
         {
             try
             {
-                var novaUrl = await _service.CriarEncurtamentoComLinkPersonalizado(request.UrlOriginal, request.LinkPersonalizado);
+                var novaUrl = await _service.CriarEncurtamentoComLinkPersonalizado(request.UrlOriginal, request.LinkPersonalizado, request.DataExpiracao);
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
                 return Ok(new { urlCurta = $"{baseUrl}/{novaUrl.Codigo}" });
             }
@@ -41,10 +41,17 @@ namespace EncurtadorUrl.Controller
         [HttpGet("{codigo}")]
         public async Task<IActionResult> Redirecionar(string codigo)
         {
-            var registro = await _service.BuscarPorCodigo(codigo);
-            if (registro == null) return NotFound();
-        
-            return Redirect(registro.UrlOriginal);
+            try
+            {
+                var registro = await _service.BuscarPorCodigo(codigo);
+                if (registro == null) return NotFound();
+
+                return Redirect(registro.UrlOriginal);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

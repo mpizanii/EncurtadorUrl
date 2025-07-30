@@ -17,5 +17,8 @@ namespace EncurtadorUrl.Models
 
         [BsonElement("dataCriacao")]
         public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+
+        [BsonElement("dataExpiracao")]
+        public DateTime? DataExpiracao { get; set; }
     }
 }

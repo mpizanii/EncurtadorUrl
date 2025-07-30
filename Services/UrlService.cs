@@ -15,7 +15,7 @@ namespace EncurtadorUrl.Services
             _collection = database.GetCollection<ShortUrl>(settings.CollectionName);
         }
 
-        public async Task<ShortUrl> CriarEncurtamento(string urlOriginal)
+        public async Task<ShortUrl> CriarEncurtamento(string urlOriginal, DateTime? dataExpiracao = null)
         {
             var urlJaExiste = await _collection.Find(x => x.UrlOriginal == urlOriginal).FirstOrDefaultAsync();
             if (urlJaExiste != null) return urlJaExiste;
@@ -32,14 +32,15 @@ namespace EncurtadorUrl.Services
             var doc = new ShortUrl
             {
                 Codigo = codigo,
-                UrlOriginal = urlOriginal
+                UrlOriginal = urlOriginal,
+                DataExpiracao = dataExpiracao
             };
 
             await _collection.InsertOneAsync(doc);
             return doc;
         }
 
-        public async Task<ShortUrl> CriarEncurtamentoComLinkPersonalizado(string urlOriginal, string linkPersonalizado)
+        public async Task<ShortUrl> CriarEncurtamentoComLinkPersonalizado(string urlOriginal, string linkPersonalizado, DateTime? dataExpiracao = null)
         {
 
             if (string.IsNullOrWhiteSpace(linkPersonalizado) || linkPersonalizado.Length < 6)
@@ -54,7 +55,8 @@ namespace EncurtadorUrl.Services
             var doc = new ShortUrl
             {
                 Codigo = linkPersonalizado,
-                UrlOriginal = urlOriginal
+                UrlOriginal = urlOriginal,
+                DataExpiracao = dataExpiracao
             };
 
             await _collection.InsertOneAsync(doc);
@@ -63,7 +65,15 @@ namespace EncurtadorUrl.Services
 
         public async Task<ShortUrl> BuscarPorCodigo(string codigo)
         {
-            return await _collection.Find(x => x.Codigo == codigo).FirstOrDefaultAsync();
+            var url = await _collection.Find(x => x.Codigo == codigo).FirstOrDefaultAsync();
+
+            if (url == null)
+                return null;
+
+            if (DateTime.UtcNow > url.DataExpiracao)
+                throw new ArgumentException("A data de expiração já expirou.");
+
+            return url;
         }
     }
 }
